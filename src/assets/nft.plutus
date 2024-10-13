@@ -1,0 +1,5 @@
+{
+    "type": "PlutusScriptV2",
+    "description": "",
+    "cborHex": "<contract-address>"
+}
