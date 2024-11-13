@@ -99,6 +99,13 @@ router.post("/mint", async (context) => {
   }
 });
 
+router.get("/health", async (context) => {
+    // Respond with success
+    context.response.body = {
+      status: "success",
+    };
+});
+
 // Start Oak Application
 const app = new Application();
 app.use(router.routes());
