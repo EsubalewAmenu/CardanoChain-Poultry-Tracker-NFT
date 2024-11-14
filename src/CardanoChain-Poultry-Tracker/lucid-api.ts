@@ -138,10 +138,18 @@ router.post("/history", async (context) => {
 
     const recipient: Address = addr //body.recipient;
 
+    // Add metadata
+    const metadata = {
+      [body.policyId]: {
+        [body.code]: body.metadata
+      },
+    };
+    
     const utxos = await lucid.wallet.getUtxos();
     const tx = await lucid
       .newTx()
       .payToAddress(recipient, { [unit]: 1n })
+      .attachMetadata(721, metadata)
       .collectFrom(utxos, Data.void())
       .complete();
 
