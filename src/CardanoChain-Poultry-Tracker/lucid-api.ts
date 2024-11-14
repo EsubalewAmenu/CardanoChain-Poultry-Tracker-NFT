@@ -74,11 +74,20 @@ router.post("/mint", async (context) => {
     const unit: Unit = policyId + tn;
     console.log("Minting Unit:", unit);
 
+
+    // Add metadata
+    const metadata = {
+      [policyId]: {
+        [tokenName]: body.metadata
+      },
+    };
+    
     // Build and sign the transaction
     const tx = await lucid
       .newTx()
       .mintAssets({ [unit]: 1n }, Data.void())
       .attachMintingPolicy(nftPolicy)
+      .attachMetadata(721, metadata)
       .collectFrom([utxo])
       .complete();
 
