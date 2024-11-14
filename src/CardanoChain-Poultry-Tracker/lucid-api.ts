@@ -108,6 +108,58 @@ router.post("/mint", async (context) => {
   }
 });
 
+
+// API Endpoint: Transfer NFT to self
+router.post("/history", async (context) => {
+  try {
+    const body = await context.request.body({ type: "json" }).value;
+
+    const lucid = await Lucid.new(
+      new Blockfrost("https://cardano-preprod.blockfrost.io/api/v0", body.blockfrostKey),
+      "Preprod"
+    );
+
+    lucid.selectWalletFromSeed(body.secretSeed);
+
+    const addr: Address = await lucid.wallet.address();
+    console.log("Sender Address:", addr);
+
+    // Validate inputs
+    if (!body.policyId.match(/^[0-9a-fA-F]{56}$/)) {
+      context.response.status = 400;
+      context.response.body = { error: "Invalid policy ID format." };
+      return;
+    }
+
+    const tokenNameHex = fromText(body.tokenName);
+    const unit: Unit = body.policyId + tokenNameHex;
+
+    console.log("NFT Unit:", unit);
+
+    const recipient: Address = addr //body.recipient;
+
+    const utxos = await lucid.wallet.getUtxos();
+    const tx = await lucid
+      .newTx()
+      .payToAddress(recipient, { [unit]: 1n })
+      .collectFrom(utxos, Data.void())
+      .complete();
+
+    const signedTx = await tx.sign().complete();
+    const txHash = await signedTx.submit();
+
+    context.response.body = {
+      status: "success",
+      txHash,
+    };
+  } catch (error) {
+    console.error("Error:", error);
+    context.response.status = 500;
+    context.response.body = { error: error.message };
+  }
+});
+
+
 router.get("/health", async (context) => {
     // Respond with success
     context.response.body = {
