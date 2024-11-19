@@ -167,6 +167,58 @@ router.post("/history", async (context) => {
   }
 });
 
+router.post("/utxo-status", async (context) => {
+  try {
+
+    const body = await context.request.body({ type: "json" }).value;
+
+    const txHash = body.txHash;
+
+    if (!txHash.match(/^[0-9a-fA-F]{64}$/)) {
+      context.response.status = 400;
+      context.response.body = { error: "Invalid transaction hash format." };
+      return;
+    }
+
+    const lucid = await Lucid.new(
+      new Blockfrost("https://cardano-preprod.blockfrost.io/api/v0", body.blockfrostKey),
+      "Preprod"
+    );
+    
+    lucid.selectWalletFromSeed(body.secretSeed);
+
+    const addr: Address = await lucid.wallet.address();
+
+    // Fetch all UTxOs for the address
+    const utxos = await lucid.wallet.getUtxos();
+
+    // Filter UTxOs belonging to the transaction hash
+    const filteredUtxos = utxos.filter((utxo) => utxo.txHash === txHash);
+
+    if (filteredUtxos.length > 0) {
+      context.response.body = {
+        status: "ready",
+        message: "UTxO is ready for the next transaction.",
+        utxos: filteredUtxos.map((utxo) => ({
+          txHash: utxo.txHash,
+          outputIndex: utxo.outputIndex,
+          amount: utxo.amount,
+        })),
+      };
+    } else {
+      context.response.body = {
+        status: "pending",
+        message: "UTxO is not yet ready for the next transaction. Wait for confirmation.",
+      };
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    context.response.status = 500;
+    context.response.body = { error: error.message };
+  }
+});
+
+
 
 router.get("/health", async (context) => {
     // Respond with success
