@@ -22,7 +22,12 @@ services:
     volumes:
       - ..:/workspace
       - node-ipc:/root/.cardano/preview/
-    command: /bin/sh -c "while sleep 1000; do :; done"
+    command: >
+      bash -c "
+      until /root/.cargo/bin/deno run -A /workspace/CardanoChain-Poultry-Tracker-NFT/src/CardanoChain-Poultry-Tracker/lucid-api.ts; do
+        echo 'Waiting for deno to be available...';
+        sleep 2;
+      done || while sleep 1000; do :; done"
     ports:
       - "8000:8000"
     logging:
